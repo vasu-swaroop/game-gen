@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dd-simulator-backend"
+version = "0.1.0"
+description = "D&D Simulator Backend"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.109.0",
+    "uvicorn[standard]==0.27.0",
+    "python-multipart==0.0.6",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "aiosqlite==0.19.0",
+    "ollama==0.1.4",
+]
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.uv]
+managed = true
+
+[project.scripts]
+start-engine = "app.main:start"

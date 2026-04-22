@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Simulator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; margin-bottom: 30px; color: #4ade80; text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn {
+            background: #374151; color: #fff; padding: 12px 24px; border: none; cursor: pointer;
+            border-radius: 8px; font-size: 16px; transition: all 0.3s;
+        }
+        .tab-btn:hover, .tab-btn.active { background: #22c55e; transform: scale(1.05); }
+        
+        .panel { display: none; animation: fadeIn 0.3s; }
+        .panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #d1d5db; font-weight: 600; }
+        input, textarea {
+            width: 100%; padding: 12px 16px; background: #374151; border: 2px solid #4b5563;
+            color: #fff; border-radius: 8px; font-size: 16px; transition: border-color 0.3s;
+        }
+        input:focus, textarea:focus { outline: none; border-color: #22c55e; }
+        textarea { min-height: 100px; resize: vertical; }
+        
+        .btn {
+            background: #22c55e; color: #fff; padding: 14px 32px; border: none; cursor: pointer;
+            border-radius: 8px; font-size: 16px; font-weight: 600; transition: all 0.3s;
+        }
+        .btn:hover { background: #16a34a; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(34, 197, 94, 0.3); }
+        .btn:disabled { background: #6b7280; cursor: not-allowed; }
+        
+        .card {
+            background: #374151; padding: 20px; border-radius: 12px; margin-bottom: 15px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
+        .card h3 { color: #4ade80; margin-bottom: 10px; }
+        .card p { color: #d1d5db; line-height: 1.6; }
+        
+        .chat-interface { display: flex; flex-direction: column; height: calc(100vh - 200px); }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 20px; background: #1f2937; border-radius: 12px;
+            margin-bottom: 15px;
+        }
+        .message { margin-bottom: 15px; max-width: 80%; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        .message.user { margin-left: auto; }
+        .message.bot { margin-right: auto; }
+        .message-content {
+            padding: 15px 20px; border-radius: 16px; line-height: 1.6;
+        }
+        .user .message-content {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: #fff; border-bottom-right-radius: 4px;
+        }
+        .bot .message-content {
+            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+            color: #d1d5db; border-bottom-left-radius: 4px;
+        }
+        
+        .chat-input-container { display: flex; gap: 10px; align-items: flex-start; }
+        .chat-input-container textarea { padding-right: 80px; }
+        
+        #error-msg { color: #f87171; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
+        #success-msg { color: #4ade80; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
+        
+        .loading { opacity: 0.6; pointer-events: none; position: relative; }
+        .loading::after {
+            content: ""; position: absolute; top: 50%; left: 50%; width: 20px; height: 20px;
+            border: 3px solid #fff; border-top-color: transparent; border-radius: 50%;
+            animation: spin 1s linear infinite; transform: translate(-50%, -50%);
+        }
+        @keyframes spin { to { transform: rotate(360deg) translate(-50%, -50%); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎲 D&D Simulator API Test Interface</h1>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('create')">Create Campaign</button>
+            <button class="tab-btn" onclick="showTab('chat')">Chat with DM</button>
+            <button class="tab-btn" onclick="showTab('list')">List Campaigns</button>
+        </div>
+
+        <!-- Create Campaign Tab -->
+        <div id="create" class="panel active">
+            <h2 style="color: #4ade80; margin-bottom: 20px;">Create New Campaign</h2>
+            <div id="error-msg"></div>
+            <div id="success-msg"></div>
+            <form onsubmit="createCampaign(event)">
+                <div class="form-group">
+                    <label for="campaign-name">Campaign Name *</label>
+                    <input type="text" id="campaign-name" required placeholder="Enter campaign name...">
+                </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" placeholder="What's this campaign about?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="dm-name">Dungeon Master Name</label>
+                    <input type="text" id="dm-name" placeholder="Your name as DM...">
+                </div>
+                <button type="submit" class="btn" id="create-btn">Create Campaign</button>
+            </form>
+        </div>
+
+        <!-- Chat Tab -->
+        <div id="chat" class="panel">
+            <h2 style="color: #4ade80; margin-bottom: 20px;">Chat with Dungeon Master</h2>
+            <div id="error-msg"></div>
+            <div class="form-group">
+                <label for="selected-campaign">Select Campaign:</label>
+                <select id="selected-campaign" onchange="loadCampaign()" style="padding: 12px; background: #374151; color: #fff; border-radius: 8px; width: 100%;">
+                    <option value="">Loading campaigns...</option>
+                </select>
+            </div>
+            
+            <div class="chat-interface" id="chat-container" style="display: none;">
+                <div class="chat-messages" id="chat-messages">
+                    <p style="text-align: center; color: #6b7280; padding-top: 40px;">
+                        No messages yet. Start a conversation with your Dungeon Master!
+                    </p>
+                </div>
+                <div class="chat-input-container">
+                    <textarea id="user-message" placeholder="What do you want to do? (Press Enter to send)" rows="2"></textarea>
+                    <button class="btn" onclick="sendMessage()" id="send-btn">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- List Campaigns Tab -->
+        <div id="list" class="panel">
+            <h2 style="color: #4ade80; margin-bottom: 20px;">Your Campaigns</h2>
+            <button class="btn" onclick="loadCampaigns()" style="margin-bottom: 20px;">Refresh List</button>
+            <div id="campaign-list">Loading campaigns...</div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
